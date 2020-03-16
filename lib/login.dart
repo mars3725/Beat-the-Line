@@ -1,86 +1,120 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:location/location.dart';
 
 class LoginPage extends StatefulWidget {
-  LoginPage({Key key}) : super(key: key);
-
+  final GlobalKey<FormState> _formKey = GlobalKey(debugLabel: "Form Key");
+  final GlobalKey<ScaffoldState> _scaffoldKey  = GlobalKey(debugLabel: "Scaffold Key");
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State createState() => LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+  String _email, _password, _name;
+  bool _loading, _newUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loading = false;
+    _newUser = false;
+
+    FirebaseAuth.instance.currentUser().then((value) {
+      if (value != null) {
+        print("Silently Signed in");
+        Navigator.popAndPushNamed(context, '/HomePage');
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final usernameField = TextField(
-      obscureText: true,
-      decoration: InputDecoration(
-          contentPadding: EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-          hintText: "USERNAME OR PHONE",
-          border:
-          OutlineInputBorder(borderRadius: BorderRadius.circular(32.0))),
-    );
+    return Scaffold(key: widget._scaffoldKey,
+        backgroundColor: Theme.of(context).backgroundColor,
+        body: Form(key: widget._formKey,
+            child: ListView(padding: EdgeInsets.all(30),children: <Widget>[Column(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
+              Padding(padding: EdgeInsets.all(30)),
+              Image(image: AssetImage("assets/LogoOutline.png"), color: Theme.of(context).primaryColor),
+              Padding(padding: EdgeInsets.all(30)),
+              _newUser? TextFormField(onChanged: (name) => _name = name,
+                  validator: (name) => name.isEmpty? "Name can't be empty" : null,
+                  decoration: InputDecoration(labelText: "First Name", prefixIcon: Icon(Icons.person))) : Container(),
+              Padding(padding: EdgeInsets.all(10)),
+              TextFormField(keyboardType: TextInputType.emailAddress, onChanged: (email) => _email = email,
+                  validator: (email) {
+                    if (email.isEmpty) return "Email can't be empty";
+                    //else if (email.split(".").last != "edu") return "Must use a university email address";
+                    else return null;
+                  },
+                  decoration: InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.email))),
+              Padding(padding: EdgeInsets.all(10)),
+              TextFormField(obscureText: true, keyboardType: TextInputType.visiblePassword, onChanged: (password) => _password = password,
+                  validator: (password) => password.isEmpty? "Password can't be empty" : null,
+                  decoration: InputDecoration(labelText: "Password", prefixIcon: Icon(Icons.vpn_key))),
+              Padding(padding: EdgeInsets.all(10)),
+              _newUser? TextFormField(obscureText: true, keyboardType: TextInputType.visiblePassword,
+                  validator: (passConfirmation) => passConfirmation != _password? "Passwords must match" : null,
+                  decoration: InputDecoration(labelText: "Re-enter Password", prefixIcon: Icon(Icons.vpn_key))) : Container(),
+              Padding(padding: EdgeInsets.all(10)),
+              _loading? CircularProgressIndicator() : FlatButton(color: Theme.of(context).primaryColor,
+                  onPressed: () => _newUser? _signUp() : _signIn(),
+                  child: Padding(padding: EdgeInsets.all(10), child: Text(_newUser? "Sign Up" : "Login", style: TextStyle(fontSize: 18)))),
+              Padding(padding: EdgeInsets.all(30)),
+            ]),
+              Align(alignment: Alignment.bottomLeft, child: OutlineButton(onPressed: () => setState(() => _newUser = !_newUser), child: _newUser? Text("Already a user? Sign In!") : Text("New user? Sign Up!")))
+            ])));
+  }
 
-    final passwordField = TextField(
-      obscureText: true,
-      decoration: InputDecoration(
-          contentPadding: EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-          hintText: "PASSWORD",
-          border:
-          OutlineInputBorder(borderRadius: BorderRadius.circular(32.0))),
-    );
+  void _signIn() async {
+    if (!widget._formKey.currentState.validate()) return;
+    setState(() => _loading = true);
+    print('Sign in attempt: $_email with $_password');
 
-    final loginButton = Material(
-      elevation: 10.0,
-      borderRadius: BorderRadius.circular(30.0),
-      color: Color(0xfe5f38),
-      child: MaterialButton(
-        minWidth: MediaQuery.of(context).size.width,
-        padding: EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 15.0),
-        onPressed: () {},
-        child: Text("LOGIN",
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-    //test
-    return Scaffold(
-        body: SingleChildScrollView(
-          child: Center(
-            child: Container(
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(36.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget> [
-                    SizedBox(
-                      height: 155.0,
-                      /*
-                    child: Image.asset(
-                      "assets/logo.png",
-                      fit: BoxFit.contain,
-                    ),
-                    */
-                    ),
-                    SizedBox(height: 45.0),
-                    usernameField,
-                    SizedBox(height: 25.0),
-                    passwordField,
-                    SizedBox(
-                        height: 35.0
-                    ),
-                    loginButton,
-                    SizedBox(
-                      height: 15.0,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        )
-    );
+    await FirebaseAuth.instance.signInWithEmailAndPassword(email: _email, password: _password)
+        .catchError((error) {
+      widget._scaffoldKey.currentState.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("A user with that email and password was not found")));
+    });
+
+    var user = await FirebaseAuth.instance.currentUser();
+    if (user != null) {
+      LocationData location = await Location().getLocation();
+      await Firestore.instance.collection("users").document(user.uid).setData({
+        "location": GeoPoint(location.latitude, location.longitude)
+      });
+      Navigator.popAndPushNamed(context, '/HomePage');
+    } else print("No Authenticated user");
+
+    setState(() => _loading = false);
+  }
+
+  void _signUp() async {
+    if (!widget._formKey.currentState.validate()) return;
+    setState(() => _loading = true);
+    print('Sign up attempt: $_email with $_password');
+
+    await FirebaseAuth.instance.createUserWithEmailAndPassword(email: _email, password: _password)
+        .catchError((error) => print("Error creating user: $error"));
+
+    var user = await FirebaseAuth.instance.currentUser();
+    if (user != null) {
+      LocationData location = await Location().getLocation();
+      await Firestore.instance.collection("users").document(user.uid).setData({
+        "name": _name,
+        "location": GeoPoint(location.latitude, location.longitude),
+        "rating": 5
+      });
+      Navigator.popAndPushNamed(context, '/HomePage');
+    } else print("No Authenticated user");
+
+    setState(() => _loading = false);
+  }
+}
+
+User localUser = User();
+class User {
+  User() {
+
   }
 }

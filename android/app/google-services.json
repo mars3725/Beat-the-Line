@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "920527633272",
+    "firebase_url": "https://btl-alpha.firebaseio.com",
+    "project_id": "btl-alpha",
+    "storage_bucket": "btl-alpha.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920527633272:android:9efd32e005feb886d1268d",
+        "android_client_info": {
+          "package_name": "com.mattmohandiss.btl"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "920527633272-m9lt8mtul8iiejcjapq34ut0sd5nud9p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChbMEgDcs_tl1EYq2dz_jsaTFYNn5CIvY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "920527633272-m9lt8mtul8iiejcjapq34ut0sd5nud9p.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "920527633272-0bf1l9hcec9mb85lqijd9r0jiug0l47i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mattmohandiss.btl"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
