@@ -1,8 +1,9 @@
+import 'package:BTL/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:location/location.dart';
+import 'package:geolocator/geolocator.dart';
 
 class LoginPage extends StatefulWidget {
   final GlobalKey<FormState> _formKey = GlobalKey(debugLabel: "Form Key");
@@ -24,6 +25,13 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
     FirebaseAuth.instance.currentUser().then((value) {
       if (value != null) {
         print("Silently Signed in");
+        GeoPoint location;
+        geolocator.getCurrentPosition().then(
+          //TODO: remove hardcoded position
+                (value) => location = GeoPoint(35.9588284,-83.9384059)).whenComplete(
+                () => Firestore.instance.collection("users").document(value.uid).setData({
+              "location": location
+            }));
         Navigator.popAndPushNamed(context, '/HomePage');
       }
     });
@@ -79,9 +87,11 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
 
     var user = await FirebaseAuth.instance.currentUser();
     if (user != null) {
-      LocationData location = await Location().getLocation();
+      Position position = await geolocator.getCurrentPosition();
+      //TODO: remove hardcoded position
+      GeoPoint location = GeoPoint(35.9588284,-83.9384059);
       await Firestore.instance.collection("users").document(user.uid).setData({
-        "location": GeoPoint(location.latitude, location.longitude)
+        "location": location
       });
       Navigator.popAndPushNamed(context, '/HomePage');
     } else print("No Authenticated user");
@@ -99,10 +109,12 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
 
     var user = await FirebaseAuth.instance.currentUser();
     if (user != null) {
-      LocationData location = await Location().getLocation();
+      Position position = await geolocator.getCurrentPosition();
+      //TODO: remove hardcoded position
+      GeoPoint location = GeoPoint(35.9588284,-83.9384059);
       await Firestore.instance.collection("users").document(user.uid).setData({
         "name": _name,
-        "location": GeoPoint(location.latitude, location.longitude),
+        "location": location,
         "rating": 5
       });
       Navigator.popAndPushNamed(context, '/HomePage');
