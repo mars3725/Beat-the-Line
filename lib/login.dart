@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LoginPage extends StatefulWidget {
   final GlobalKey<FormState> _formKey = GlobalKey(debugLabel: "Form Key");
@@ -24,15 +25,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
 
     FirebaseAuth.instance.currentUser().then((value) {
       if (value != null) {
-        print("Silently Signed in");
-        GeoPoint location;
-        geolocator.getCurrentPosition().then(
-          //TODO: remove hardcoded position
-                (value) => location = GeoPoint(35.9588284,-83.9384059)).whenComplete(
-                () => Firestore.instance.collection("users").document(value.uid).setData({
-              "location": location
-            }));
-        Navigator.popAndPushNamed(context, '/HomePage');
+        syncExistingUser().then((value) => Navigator.popAndPushNamed(context, '/HomePage')).catchError((err) => print('Silent Sign In Failed'));
       }
     });
   }
@@ -48,9 +41,10 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
               Padding(padding: EdgeInsets.all(30)),
               _newUser? TextFormField(onChanged: (name) => _name = name,
                   validator: (name) => name.isEmpty? "Name can't be empty" : null,
+                  textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(labelText: "First Name", prefixIcon: Icon(Icons.person))) : Container(),
               Padding(padding: EdgeInsets.all(10)),
-              TextFormField(keyboardType: TextInputType.emailAddress, onChanged: (email) => _email = email,
+              TextFormField(keyboardType: TextInputType.emailAddress, initialValue: _email, onChanged: (email) => _email = email,
                   validator: (email) {
                     if (email.isEmpty) return "Email can't be empty";
                     //else if (email.split(".").last != "edu") return "Must use a university email address";
@@ -71,7 +65,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
                   child: Padding(padding: EdgeInsets.all(10), child: Text(_newUser? "Sign Up" : "Login", style: TextStyle(fontSize: 18)))),
               Padding(padding: EdgeInsets.all(30)),
             ]),
-              Align(alignment: Alignment.bottomLeft, child: OutlineButton(onPressed: () => setState(() => _newUser = !_newUser), child: _newUser? Text("Already a user? Sign In!") : Text("New user? Sign Up!")))
+              _loading? Container() : Align(alignment: Alignment.bottomLeft, child: OutlineButton(onPressed: () => setState(() => _newUser = !_newUser), child: _newUser? Text("Already a user? Sign In!") : Text("New user? Sign Up!")))
             ])));
   }
 
@@ -84,17 +78,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
         .catchError((error) {
       widget._scaffoldKey.currentState.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("A user with that email and password was not found")));
     });
-
-    var user = await FirebaseAuth.instance.currentUser();
-    if (user != null) {
-      Position position = await geolocator.getCurrentPosition();
-      //TODO: remove hardcoded position
-      GeoPoint location = GeoPoint(35.9588284,-83.9384059);
-      await Firestore.instance.collection("users").document(user.uid).setData({
-        "location": location
-      });
-      Navigator.popAndPushNamed(context, '/HomePage');
-    } else print("No Authenticated user");
+    await syncExistingUser().then((value) => Navigator.popAndPushNamed(context, '/HomePage')).catchError((err) => print(err));
 
     setState(() => _loading = false);
   }
@@ -105,28 +89,55 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
     print('Sign up attempt: $_email with $_password');
 
     await FirebaseAuth.instance.createUserWithEmailAndPassword(email: _email, password: _password)
-        .catchError((error) => print("Error creating user: $error"));
-
-    var user = await FirebaseAuth.instance.currentUser();
-    if (user != null) {
-      Position position = await geolocator.getCurrentPosition();
-      //TODO: remove hardcoded position
-      GeoPoint location = GeoPoint(35.9588284,-83.9384059);
-      await Firestore.instance.collection("users").document(user.uid).setData({
-        "name": _name,
-        "location": location,
-        "rating": 5
-      });
-      Navigator.popAndPushNamed(context, '/HomePage');
-    } else print("No Authenticated user");
+        .catchError((error) {
+      widget._scaffoldKey.currentState.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text("Cannot create a new user with the given information")));
+    });
+    await syncNewUser().then((value) => Navigator.popAndPushNamed(context, '/HomePage')).catchError((err) => print(err));
 
     setState(() => _loading = false);
   }
+
+  Future syncExistingUser() async {
+    var user = await FirebaseAuth.instance.currentUser();
+    if (user != null) {
+      //TODO: remove hardcoded position
+      Position position = await geolocator.getCurrentPosition();
+      GeoPoint location = GeoPoint(35.9588284, -83.9384059);
+
+      Firestore.instance.collection("users").document(user.uid).setData({
+        "location": location
+      }, merge: true);
+
+      DocumentSnapshot doc = await Firestore.instance.collection("users").document(user.uid).get();
+      localUser = User(user, doc.data['name'], LatLng(location.latitude, location.longitude), doc.data['rating']);
+    } else throw 'no authenticated user';
+  }
+
+  Future syncNewUser() async {
+    var user = await FirebaseAuth.instance.currentUser();
+    if (user != null) {
+      //TODO: remove hardcoded position
+      Position position = await geolocator.getCurrentPosition();
+      GeoPoint location = GeoPoint(35.9588284, -83.9384059);
+
+      int rating = 5;
+      Firestore.instance.collection("users").document(user.uid).setData({
+        "name": _name,
+        "location": location,
+        "rating": rating
+      });
+
+      localUser = User(user, _name, LatLng(location.latitude, location.longitude), rating);
+    } else throw 'no authenticated user';
+  }
 }
 
-User localUser = User();
+User localUser;
 class User {
-  User() {
+  User(this.user, this.name, this.location, this.rating);
 
-  }
+  FirebaseUser user;
+  String name;
+  LatLng location;
+  int rating;
 }

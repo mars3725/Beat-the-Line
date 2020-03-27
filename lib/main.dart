@@ -27,6 +27,7 @@ class MyApp extends StatelessWidget{
           '/NewPlacePage': (BuildContext context) => NewPlacePage(),
         },
         theme: ThemeData(
+          fontFamily: "Verdana",
             brightness: Brightness.light,
             primarySwatch: Colors.orange,
             backgroundColor: Colors.white,
