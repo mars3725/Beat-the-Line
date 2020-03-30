@@ -101,7 +101,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
     var user = await FirebaseAuth.instance.currentUser();
     if (user != null) {
       //TODO: remove hardcoded position
-      Position position = await geolocator.getCurrentPosition();
+      Position position = await geoLocator.getCurrentPosition();
       GeoPoint location = GeoPoint(35.9588284, -83.9384059);
 
       Firestore.instance.collection("users").document(user.uid).setData({
@@ -117,7 +117,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
     var user = await FirebaseAuth.instance.currentUser();
     if (user != null) {
       //TODO: remove hardcoded position
-      Position position = await geolocator.getCurrentPosition();
+      Position position = await geoLocator.getCurrentPosition();
       GeoPoint location = GeoPoint(35.9588284, -83.9384059);
 
       int rating = 5;

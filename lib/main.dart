@@ -9,7 +9,7 @@ import 'map.dart';
 
 void main() => runApp(MyApp());
 
-Geolocator geolocator = Geolocator();
+Geolocator geoLocator = Geolocator();
 
 class MyApp extends StatelessWidget{
   @override

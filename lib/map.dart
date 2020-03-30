@@ -1,9 +1,10 @@
 import 'package:BTL/detail.dart';
 import 'package:BTL/login.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_webservice/places.dart';
 
 import 'main.dart';
 
@@ -45,12 +46,12 @@ class MapPageState extends State<MapPage> {
                 ],
               )
             ]),
-        body: FutureBuilder<List<PlaceData>>(
+        body: FutureBuilder<List<PlaceDetails>>(
             future: getMapData(),
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 Set<Marker> markers = Set();
-                snapshot.data.forEach((place) => markers.add(Marker(markerId: MarkerId(place.name), infoWindow: InfoWindow(title: place.name), position: LatLng(place.location.latitude, place.location.longitude))));
+                snapshot.data.forEach((place) => markers.add(Marker(markerId: MarkerId(place.name), infoWindow: InfoWindow(title: place.name), position: LatLng(place.geometry.location.lat, place.geometry.location.lng))));
                 return Column(children: <Widget>[
                   Expanded(
                       child: GoogleMap(
@@ -68,13 +69,16 @@ class MapPageState extends State<MapPage> {
                                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => DetailPage(snapshot.data[index]))),
                                   child: Column(children: <Widget>[
                                     Row(children: <Widget>[
-                                      Text(snapshot.data[index].name, style: TextStyle(fontSize: 21, color: Theme.of(context).primaryColor)),
-                                      //Padding(padding: EdgeInsets.all(3)),
-                                      Text(" ${snapshot.data[index].distance.toStringAsFixed(1)}mi", style: TextStyle(fontSize: 14, color: Colors.grey)),
-                                      Spacer(),
+                                      Expanded(child: Row(children: <Widget>[
+                                        Expanded(child: Text(snapshot.data[index].name, style: TextStyle(fontSize: 21, color: Theme.of(context).primaryColor), overflow: TextOverflow.ellipsis)),
+                                        Padding(padding: EdgeInsets.all(3)),
+                                        FutureBuilder<double>(future: geoLocator.distanceBetween(localUser.location.latitude, localUser.location.longitude, snapshot.data[index].geometry.location.lat, snapshot.data[index].geometry.location.lng),
+                                            builder: (context, snapshot) => snapshot.hasData?
+                                            Text(" ${(snapshot.data/1609.344).toStringAsFixed(2)}mi", style: TextStyle(fontSize: 14, color: Colors.grey)) : Container())
+                                        ])),
+                                      Padding(padding: EdgeInsets.all(15)),
                                       Row(children: List.generate(5, (rating) => Icon(rating < snapshot.data[index].rating ? Icons.star : Icons.star_border, size: 18))),
                                     ]),
-                                    Text(snapshot.data[index].description),
                                   ])))))
                 ]);
               } else
@@ -83,16 +87,15 @@ class MapPageState extends State<MapPage> {
   }
 }
 
-Future<List<PlaceData>> getMapData() async {
-  QuerySnapshot query = await Firestore.instance.collection('places').getDocuments();
-
-  List<PlaceData> places = List();
-
-  for (DocumentSnapshot doc in query.documents) {
-    double dist = await geolocator.distanceBetween(localUser.location.latitude, localUser.location.longitude, doc.data['location'].latitude, doc.data['location'].longitude).catchError((err) => print("ERROR: $err"));
-    places.add(PlaceData(name: doc.data['name'], location: LatLng(doc.data['location'].latitude, doc.data['location'].longitude), rating: doc.data['rating'], description: doc.data['description'], distance: dist / 1609.344));
-  }
-  return places;
+Future<List<PlaceDetails>> getMapData() async {
+  final GoogleMapsPlaces maps = GoogleMapsPlaces(apiKey: 'AIzaSyBw9I3gA17vDFQS1lZkuLG8tH79YdIz21k');
+  final result = await maps.searchNearbyWithRankBy(Location(localUser.location.latitude, localUser.location.longitude), 'distance', type: 'bar');
+  List<PlaceDetails> detailsList = List();
+  await Future.forEach<PlacesSearchResult>(result.results, (place) async {
+    PlacesDetailsResponse res = await maps.getDetailsByPlaceId(place.placeId);
+    if (res.isOkay) detailsList.add(res.result);
+  });
+  return detailsList;
 }
 
 class PlaceData {

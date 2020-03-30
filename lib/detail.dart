@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:BTL/login.dart';
+import 'package:BTL/main.dart';
 import 'package:flutter/material.dart';
-
-import 'map.dart';
+import 'package:google_maps_webservice/places.dart';
 
 class DetailPage extends StatefulWidget {
-  final PlaceData data;
+  final PlaceDetails data;
   DetailPage(this.data, {Key key}) : super(key: key);
 
   @override
@@ -15,48 +15,17 @@ class _DetailPageState extends State<DetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-            title: Text("BEAT THE LINE", style: TextStyle(color: Colors.white)),
-            leading: Padding(padding: EdgeInsets.all(13), child: Image(image: AssetImage("assets/LogoOutline.png"), color: Colors.white)),
-            automaticallyImplyLeading: false,
-            actions: <Widget>[
-              PopupMenuButton(
-                icon: Icon(Icons.more_vert, color: Colors.white),
-                onSelected: (index) {
-                  switch (index) {
-                    case 1:
-                      FirebaseAuth.instance.signOut().then((value) => Navigator.popAndPushNamed(context, '/LoginPage'));
-                      break;
-                    case 2:
-                      Navigator.pushNamed(context, '/NewPlacePage');
-                      break;
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry>[
-                  const PopupMenuItem(
-                    value: 1,
-                    child: Text('Log Out'),
-                  ),
-                  const PopupMenuItem(
-                    value: 2,
-                    child: Text('Add Place'),
-                  ),
-                ],
-              )
-            ]),
+    return Scaffold( 
         body: Column(children: <Widget>[
           Stack(alignment: Alignment.bottomLeft ,children: <Widget>[
             Image.asset("assets/Bar.jpg"),
-            Padding(padding: EdgeInsets.all(15), child: Column(children: <Widget>[
-              Text(widget.data.name, style: TextStyle(fontSize: 60, color: Colors.white)),
-              Text(widget.data.description, style: TextStyle(fontSize: 18, color: Colors.white)),
+            Padding(padding: EdgeInsets.all(15), child: Row(children: <Widget>[
+              Text(widget.data.name, style: TextStyle(fontSize: 58, color: Colors.white)),
+              FutureBuilder<double>(future: geoLocator.distanceBetween(localUser.location.latitude, localUser.location.longitude, widget.data.geometry.location.lat, widget.data.geometry.location.lng),
+                  builder: (context, snapshot) => snapshot.hasData?
+                  Text(" ${(snapshot.data/1609.344).toStringAsFixed(1)}mi", style: TextStyle(fontSize: 24, color: Colors.grey)) : Container())
             ]))
           ])
         ]));
-  }
-
-  Future<void> getPlaceDetails() {
-
   }
 }

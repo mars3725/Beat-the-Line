@@ -13,13 +13,6 @@ class NewPlacePageState extends State<NewPlacePage> with SingleTickerProviderSta
   String _name, _description;
   int _rating;
   double _lat, _lon;
-  bool _loading;
-
-  @override
-  void initState() {
-    super.initState();
-    _loading = false;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +49,14 @@ class NewPlacePageState extends State<NewPlacePage> with SingleTickerProviderSta
               Padding(padding: EdgeInsets.all(10)),
               FlatButton(color: Theme.of(context).primaryColor,
                   onPressed: () {
-                if (!widget._formKey2.currentState.validate()) {
-                  setState(() => _loading = false);
-                  return;
-                } else Firestore.instance.collection('places').add({
-                  "name": _name,
-                  "description": _description,
-                  "location": GeoPoint(_lat, _lon),
-                  "rating": _rating
-                }).whenComplete(() => Navigator.of(context).pop());
-                setState(() => _loading = true);
+                if (widget._formKey2.currentState.validate()) {
+                  Firestore.instance.collection('places').add({
+                    "name": _name,
+                    "description": _description,
+                    "location": GeoPoint(_lat, _lon),
+                    "rating": _rating
+                  }).whenComplete(() => Navigator.of(context).pop());
+                }
                   },
                   child: Padding(padding: EdgeInsets.all(10), child: Text("Submit", style: TextStyle(fontSize: 18)))),
               Padding(padding: EdgeInsets.all(30)),
