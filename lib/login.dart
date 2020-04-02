@@ -42,7 +42,7 @@ class LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixi
               _newUser? TextFormField(onChanged: (name) => _name = name,
                   validator: (name) => name.isEmpty? "Name can't be empty" : null,
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(labelText: "First Name", prefixIcon: Icon(Icons.person))) : Container(),
+                  decoration: InputDecoration(labelText: "Name", prefixIcon: Icon(Icons.person))) : Container(),
               Padding(padding: EdgeInsets.all(10)),
               TextFormField(keyboardType: TextInputType.emailAddress, initialValue: _email, onChanged: (email) => _email = email,
                   validator: (email) {
