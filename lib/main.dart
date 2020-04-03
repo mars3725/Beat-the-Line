@@ -1,4 +1,5 @@
 import 'package:BTL/admin/admin.dart';
+import 'package:BTL/legal.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget{
           '/LoginPage': (BuildContext context) => LoginPage(),
           '/HomePage': (BuildContext context) => MapPage(),
           '/NewPlacePage': (BuildContext context) => NewPlacePage(),
+          '/LegalPage': (BuildContext context) => LegalPage(),
         },
         theme: ThemeData(
           fontFamily: "Verdana",

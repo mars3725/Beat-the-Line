@@ -56,7 +56,9 @@ class MapPageState extends State<MapPage> {
             ),
             ListTile(
               title: Text('Legal', style: TextStyle(color: Colors.white)),
-              onTap: () {},
+              onTap: () {
+                Navigator.pushNamed(context, '/LegalPage');
+              },
             ),
           ],
         ),
